@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { QrCode, History, LineChart, Cpu, Layers, Globe } from "lucide-react";
+import { QrCode, History, LineChart, Cpu, Layers, Globe, Sparkles } from "lucide-react";
+import { Link } from "wouter";
 import { cn } from "@/lib/utils";
 import { QrGeneratorForm } from "./components/qr-generator-form";
 import { QrPreview } from "./components/qr-preview";
@@ -112,6 +113,20 @@ export default function Dashboard() {
             onClick={() => setActiveView("analytics")}
             disabled={!activeSession?.trackTraffic}
           />
+
+          <div className="pt-4 border-t border-border/30 mt-4">
+            <Link href="/demo">
+              <a className={cn(
+                "group flex items-center gap-4 rounded-xl px-4 py-3 w-full transition-all",
+                "bg-primary/10 border border-primary/20 hover:bg-primary/20 hover:border-primary/40"
+              )}>
+                <span className="text-primary w-5 h-5 shrink-0 flex items-center justify-center">
+                  <Sparkles className="w-5 h-5" />
+                </span>
+                <span className="hidden md:block text-sm font-semibold text-primary">Live Demo</span>
+              </a>
+            </Link>
+          </div>
         </nav>
 
         <div className="px-6 mt-auto hidden md:block text-xs text-muted-foreground">
