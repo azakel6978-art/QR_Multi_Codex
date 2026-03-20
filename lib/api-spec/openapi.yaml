@@ -1,15 +1,20 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: ACB Dynamic QR Studio API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: qr
+    description: QR code generation and management
+  - name: sessions
+    description: QR session management
+  - name: traffic
+    description: Traffic tracking and analytics
 paths:
   /healthz:
     get:
@@ -24,6 +29,184 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /qr/generate:
+    post:
+      operationId: generateQr
+      tags: [qr]
+      summary: Generate a QR code
+      description: Generates a QR code with all ACB parameters applied
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QrGenerateRequest"
+      responses:
+        "200":
+          description: Generated QR session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QrSession"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /qr/sessions:
+    get:
+      operationId: listSessions
+      tags: [sessions]
+      summary: List all QR sessions
+      description: Returns all saved QR sessions
+      responses:
+        "200":
+          description: List of QR sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/QrSession"
+
+  /qr/sessions/{id}:
+    get:
+      operationId: getSession
+      tags: [sessions]
+      summary: Get a QR session
+      description: Returns a specific QR session by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: QR session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QrSession"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      operationId: deleteSession
+      tags: [sessions]
+      summary: Delete a QR session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResult"
+
+  /qr/test:
+    post:
+      operationId: testQrCode
+      tags: [qr]
+      summary: Run QR scan simulation
+      description: Simulates QR scanning and returns reliability test results
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QrTestRequest"
+      responses:
+        "200":
+          description: Test results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QrTestResult"
+
+  /qr/page/{id}:
+    get:
+      operationId: getQrPage
+      tags: [qr]
+      summary: Get generated HTML page for QR
+      description: Returns the full HTML page for a QR session, used for multi-tab opening
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: HTML page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QrPage"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /traffic/{sessionId}:
+    get:
+      operationId: getTrafficReport
+      tags: [traffic]
+      summary: Get traffic report for a QR session
+      description: Returns visit counts and source breakdown for a session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Traffic report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrafficReport"
+
+  /traffic/{sessionId}/track:
+    post:
+      operationId: trackVisit
+      tags: [traffic]
+      summary: Record a page visit
+      description: Records a visit to a QR-generated page
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrackVisitRequest"
+      responses:
+        "200":
+          description: Visit recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackVisitResult"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +217,302 @@ components:
       required:
         - status
 
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+        - message
+
+    DeleteResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        id:
+          type: string
+      required:
+        - success
+        - id
+
+    TextOverlayConfig:
+      type: object
+      properties:
+        text:
+          type: string
+        font:
+          type: string
+          enum: [bold, italic, cursive, normal]
+        size:
+          type: integer
+          minimum: 8
+          maximum: 200
+        x:
+          type: number
+          description: X position as percentage of image width (0-100)
+        y:
+          type: number
+          description: Y position as percentage of image height (0-100)
+        color:
+          type: string
+          description: CSS color string for text
+      required:
+        - text
+        - font
+        - size
+        - x
+        - y
+        - color
+
+    QrGenerateRequest:
+      type: object
+      properties:
+        qrData:
+          type: string
+          description: Primary data to encode (URL, text, etc.)
+        dynamicContent:
+          type: string
+          description: Runtime override for qrData; if present, used instead
+        cornerColor:
+          type: string
+          description: Hex color for corner finder squares (e.g. "#FF0000")
+        logoUrl:
+          type: string
+          description: URL of the central logo image
+        logoScale:
+          type: number
+          minimum: 0.0
+          maximum: 0.4
+          description: Logo size as fraction of QR width (max 0.4 to preserve scannability)
+        textOverlay:
+          $ref: "#/components/schemas/TextOverlayConfig"
+        whiteFill:
+          type: boolean
+          description: Apply paint-bucket fill to white QR modules
+        whiteFillColor:
+          type: string
+          description: Color to fill white areas with (default transparent/off-white)
+        highlightCorners:
+          type: boolean
+          description: Apply cornerColor to the QR finder squares
+        metadataFriendly:
+          type: boolean
+          description: Include SEO meta tags and alt text in generated page
+        pageTitle:
+          type: string
+          description: HTML page title for the generated page
+        pageDescription:
+          type: string
+          description: Meta description for the generated page
+        vocalIntroUrl:
+          type: string
+          description: URL of audio file to autoplay on page load (premium)
+        trackTraffic:
+          type: boolean
+          description: Enable traffic tracking for this session (premium)
+        tabsToOpen:
+          type: integer
+          minimum: 1
+          maximum: 10
+          description: Number of browser tabs this session targets
+        premiumFeatures:
+          type: boolean
+          description: Enable premium features (traffic tracking, vocal intro)
+      required:
+        - qrData
+
+    QrSession:
+      type: object
+      properties:
+        id:
+          type: string
+        qrData:
+          type: string
+        dynamicContent:
+          type: string
+        cornerColor:
+          type: string
+        logoUrl:
+          type: string
+        logoScale:
+          type: number
+        textOverlay:
+          $ref: "#/components/schemas/TextOverlayConfig"
+        whiteFill:
+          type: boolean
+        whiteFillColor:
+          type: string
+        highlightCorners:
+          type: boolean
+        metadataFriendly:
+          type: boolean
+        pageTitle:
+          type: string
+        pageDescription:
+          type: string
+        vocalIntroUrl:
+          type: string
+        trackTraffic:
+          type: boolean
+        tabsToOpen:
+          type: integer
+        premiumFeatures:
+          type: boolean
+        qrImageBase64:
+          type: string
+          description: Base64-encoded PNG of the generated QR code
+        pageUrl:
+          type: string
+          description: URL path to the rendered HTML page for this session
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - qrData
+        - qrImageBase64
+        - pageUrl
+        - createdAt
+        - updatedAt
+
+    QrTestRequest:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          description: ID of the session to test
+        qrImageBase64:
+          type: string
+          description: Raw base64 QR image to test (alternative to sessionId)
+      required: []
+
+    QrTestResult:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        scannable:
+          type: boolean
+          description: Whether the QR code is reliably scannable
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Scan reliability score (0-1)
+        issues:
+          type: array
+          items:
+            type: string
+          description: List of detected issues
+        warnings:
+          type: array
+          items:
+            type: string
+          description: List of warnings that may affect scannability
+        recommendations:
+          type: array
+          items:
+            type: string
+          description: Suggestions for improving the QR code
+        logoConflict:
+          type: boolean
+          description: Whether the logo overlaps critical QR data modules
+        cornerConflict:
+          type: boolean
+          description: Whether corner highlighting may reduce reliability
+      required:
+        - scannable
+        - confidence
+        - issues
+        - warnings
+        - recommendations
+        - logoConflict
+        - cornerConflict
+
+    QrPage:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        html:
+          type: string
+          description: Full HTML string for the generated page
+        pageTitle:
+          type: string
+        pageDescription:
+          type: string
+      required:
+        - sessionId
+        - html
+
+    TrafficReport:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        totalVisits:
+          type: integer
+        uniqueVisitors:
+          type: integer
+        sources:
+          type: object
+          additionalProperties:
+            type: integer
+          description: Map of referrer/source to visit count
+        recentVisits:
+          type: array
+          items:
+            $ref: "#/components/schemas/Visit"
+      required:
+        - sessionId
+        - totalVisits
+        - uniqueVisitors
+        - sources
+        - recentVisits
+
+    Visit:
+      type: object
+      properties:
+        id:
+          type: string
+        sessionId:
+          type: string
+        source:
+          type: string
+        userAgent:
+          type: string
+        visitedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - sessionId
+        - visitedAt
+
+    TrackVisitRequest:
+      type: object
+      properties:
+        source:
+          type: string
+          description: Referrer or traffic source label
+        userAgent:
+          type: string
+      required: []
+
+    TrackVisitResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        visitId:
+          type: string
+      required:
+        - success
+        - visitId

@@ -1,0 +1,18 @@
+packages:
+  "framer-motion": "Animations and page transitions for a premium feel"
+  "recharts": "Data visualization for the traffic analytics dashboard"
+  "lucide-react": "Beautiful, consistent iconography"
+  "clsx": "Utility for conditionally joining classNames"
+  "tailwind-merge": "Utility for merging tailwind classes without conflicts"
+  "react-hook-form": "Form state management and validation"
+  "@hookform/resolvers": "Zod resolver for react-hook-form"
+  "date-fns": "Formatting dates in the sessions list"
+
+images:
+  - path: "artifacts/acb-qr/public/images/auth-bg.png"
+    description: "Abstract dark tech-forward background with subtle cyan and purple glowing geometric lines and grid patterns, deep contrast"
+    aspect_ratio: "16:9"
+
+notes:
+  - Using generated Orval hooks directly from @workspace/api-client-react
+  - Simulating the Tabs feature via window.open loops (note: browsers may block multiple popups without user interaction)
