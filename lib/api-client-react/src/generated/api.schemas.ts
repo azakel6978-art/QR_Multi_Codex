@@ -182,3 +182,41 @@ export interface TrackVisitResult {
   success: boolean;
   visitId: string;
 }
+
+export interface BuildPagesRequest {
+  /** Search query (e.g. "AZAKELS") */
+  query: string;
+}
+
+export type ContentPageType =
+  (typeof ContentPageType)[keyof typeof ContentPageType];
+
+export const ContentPageType = {
+  intro: "intro",
+  profile: "profile",
+  media: "media",
+} as const;
+
+export interface ContentPage {
+  pageNumber: number;
+  type: ContentPageType;
+  platform: string;
+  title: string;
+  url: string;
+  /** Full synopsis/description for this page */
+  synopsis: string;
+  /** SEO and accessibility alt text generated from site metadata */
+  altText: string;
+  /** Native site logo URL (personal to the site, not platform generic) */
+  logoUrl?: string;
+  faviconUrl?: string;
+  ogImageUrl?: string;
+  searchSnippet?: string;
+}
+
+export interface BuildPagesResponse {
+  query: string;
+  totalPages: number;
+  sitesFound: number;
+  pages: ContentPage[];
+}

@@ -1,0 +1,42 @@
+🔎 SOURCE #1 — SoundBetter Profile
+
+Base page: AZAKELS – A&E&R, Vocals, Music, Netwking (Morgantown, WV, USA)
+• URL 1: Profile page itself
+• URL 2: Asset links (e.g., LinkTr.ee or featured links on profile)
+
+📌 Synopsis (for alt text/description)
+
+This is a professional artist profile for AZAKELS via SoundBetter. It describes genre roles (vocals, networking), location, and includes links to personal websites and social profiles (LinkTr.ee / Azareal.net / Azakels.net / Azamerch.store / Songwhip). It also contains biographical context and insight into creative priorities, music production philosophy, and artistic process — useful for rich descriptive metadata.  ￼
+
+Alt‑Text Example:
+“Artist profile of AZAKELS on SoundBetter featuring biographical background, professional services (vocals, music production, networking), link tree to personal sites, and genre versatility.”
+
+⸻
+
+🎵 SOURCE #2 — Apple Music Artist + Releases
+
+Base page: Kelly ‘Azakels’ Donlin on Apple Music
+• URL 1: Apple Music artist page
+• URL 2: Apple Music release (e.g., Dog Paradox single or Poetic Personifications album)
+
+📌 Synopsis (for alt text/description)
+
+Apple Music aggregates discography info including studio albums (Poetic Personifications — 14 tracks, 51 min), singles (Dog Paradox — House single, 2026), earlier works (As a Who ?? Azakels, Radical Revelations). Artist is credited to Azareal Productions. This gives us music metadata (titles, genres, release years) ideal for audio pages or QR redirect targets.  ￼
+
+Alt‑Text Example:
+“Official Apple Music discography of Kelly ‘Azakels’ Donlin, featuring albums and singles from Azareal Productions including ‘Poetic Personifications’ and the 2026 single ‘Dog Paradox’.”
+
+⸻
+
+☁️ SOURCE #3 — SoundCloud AZAreal Productions
+
+Base page: AZAreal Productions on SoundCloud
+• URL 1: SoundCloud artist/label page
+• URL 2: Featured track collection or playlist page
+
+📌 Synopsis (for alt text/description)
+
+SoundCloud page for AZAreal Productions houses tracks and “Egyptian Beat” series, with an indie label manager mention tied to azakels SoundCloud profile(s). This provides community and engagement content ideal for a media or favorites page with descriptive track listings and participation cues.  ￼
+
+Alt‑Text Example:
+“SoundCloud collection for AZAreal Productions featuring original tracks including multiple versions of ‘Egyptian Beat’, with artist info and like/playlist statistics.”

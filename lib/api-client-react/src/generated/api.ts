@@ -18,6 +18,8 @@ import type {
 
 import type {
   ApiError,
+  BuildPagesRequest,
+  BuildPagesResponse,
   DeleteResult,
   HealthStatus,
   QrGenerateRequest,
@@ -38,6 +40,96 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+/**
+ * Searches for the query, takes top 3 results, extracts site metadata and logos,
+generates 2 URLs per site (profile + media), and returns 9 structured pages:
+3 intro synopsis pages + 6 content pages (profile + media per site).
+
+ * @summary Build 9-page content from a web search query
+ */
+export const getBuildPagesUrl = () => {
+  return `/api/search/build-pages`;
+};
+
+export const buildPages = async (
+  buildPagesRequest: BuildPagesRequest,
+  options?: RequestInit,
+): Promise<BuildPagesResponse> => {
+  return customFetch<BuildPagesResponse>(getBuildPagesUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(buildPagesRequest),
+  });
+};
+
+export const getBuildPagesMutationOptions = <
+  TError = ErrorType<ApiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof buildPages>>,
+    TError,
+    { data: BodyType<BuildPagesRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof buildPages>>,
+  TError,
+  { data: BodyType<BuildPagesRequest> },
+  TContext
+> => {
+  const mutationKey = ["buildPages"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof buildPages>>,
+    { data: BodyType<BuildPagesRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return buildPages(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type BuildPagesMutationResult = NonNullable<
+  Awaited<ReturnType<typeof buildPages>>
+>;
+export type BuildPagesMutationBody = BodyType<BuildPagesRequest>;
+export type BuildPagesMutationError = ErrorType<ApiError>;
+
+/**
+ * @summary Build 9-page content from a web search query
+ */
+export const useBuildPages = <
+  TError = ErrorType<ApiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof buildPages>>,
+    TError,
+    { data: BodyType<BuildPagesRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof buildPages>>,
+  TError,
+  { data: BodyType<BuildPagesRequest> },
+  TContext
+> => {
+  return useMutation(getBuildPagesMutationOptions(options));
+};
 
 /**
  * Returns server health status

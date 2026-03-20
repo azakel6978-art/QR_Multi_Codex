@@ -8,6 +8,49 @@
 import * as zod from "zod";
 
 /**
+ * Searches for the query, takes top 3 results, extracts site metadata and logos,
+generates 2 URLs per site (profile + media), and returns 9 structured pages:
+3 intro synopsis pages + 6 content pages (profile + media per site).
+
+ * @summary Build 9-page content from a web search query
+ */
+export const BuildPagesBody = zod.object({
+  query: zod.string().describe('Search query (e.g. \"AZAKELS\")'),
+});
+
+export const BuildPagesResponse = zod.object({
+  query: zod.string(),
+  totalPages: zod.number(),
+  sitesFound: zod.number(),
+  pages: zod.array(
+    zod.object({
+      pageNumber: zod.number(),
+      type: zod.enum(["intro", "profile", "media"]),
+      platform: zod.string(),
+      title: zod.string(),
+      url: zod.string(),
+      synopsis: zod
+        .string()
+        .describe("Full synopsis\/description for this page"),
+      altText: zod
+        .string()
+        .describe(
+          "SEO and accessibility alt text generated from site metadata",
+        ),
+      logoUrl: zod
+        .string()
+        .optional()
+        .describe(
+          "Native site logo URL (personal to the site, not platform generic)",
+        ),
+      faviconUrl: zod.string().optional(),
+      ogImageUrl: zod.string().optional(),
+      searchSnippet: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
  * Returns server health status
  * @summary Health check
  */

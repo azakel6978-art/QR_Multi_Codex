@@ -7,6 +7,10 @@
  */
 
 export * from "./apiError";
+export * from "./buildPagesRequest";
+export * from "./buildPagesResponse";
+export * from "./contentPage";
+export * from "./contentPageType";
 export * from "./deleteResult";
 export * from "./healthStatus";
 export * from "./qrGenerateRequest";

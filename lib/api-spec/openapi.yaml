@@ -15,7 +15,44 @@ tags:
     description: QR session management
   - name: traffic
     description: Traffic tracking and analytics
+  - name: search
+    description: 9-page content builder from web search
 paths:
+  /search/build-pages:
+    post:
+      operationId: buildPages
+      tags: [search]
+      summary: Build 9-page content from a web search query
+      description: |
+        Searches for the query, takes top 3 results, extracts site metadata and logos,
+        generates 2 URLs per site (profile + media), and returns 9 structured pages:
+        3 intro synopsis pages + 6 content pages (profile + media per site).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BuildPagesRequest"
+      responses:
+        "200":
+          description: 9-page content result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BuildPagesResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "422":
+          description: No search results found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   /healthz:
     get:
       operationId: healthCheck
@@ -516,3 +553,69 @@ components:
       required:
         - success
         - visitId
+
+    BuildPagesRequest:
+      type: object
+      properties:
+        query:
+          type: string
+          description: Search query (e.g. "AZAKELS")
+      required:
+        - query
+
+    ContentPage:
+      type: object
+      properties:
+        pageNumber:
+          type: integer
+        type:
+          type: string
+          enum: [intro, profile, media]
+        platform:
+          type: string
+        title:
+          type: string
+        url:
+          type: string
+        synopsis:
+          type: string
+          description: Full synopsis/description for this page
+        altText:
+          type: string
+          description: SEO and accessibility alt text generated from site metadata
+        logoUrl:
+          type: string
+          description: Native site logo URL (personal to the site, not platform generic)
+        faviconUrl:
+          type: string
+        ogImageUrl:
+          type: string
+        searchSnippet:
+          type: string
+      required:
+        - pageNumber
+        - type
+        - platform
+        - title
+        - url
+        - synopsis
+        - altText
+
+    BuildPagesResponse:
+      type: object
+      properties:
+        query:
+          type: string
+        totalPages:
+          type: integer
+        sitesFound:
+          type: integer
+        pages:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContentPage"
+      required:
+        - query
+        - totalPages
+        - sitesFound
+        - pages

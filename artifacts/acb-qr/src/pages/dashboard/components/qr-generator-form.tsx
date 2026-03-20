@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -39,13 +39,14 @@ type FormValues = z.infer<typeof schema>;
 interface FormProps {
   onSubmit: (data: FormValues) => void;
   isGenerating: boolean;
+  prefillUrl?: string;
 }
 
-export function QrGeneratorForm({ onSubmit, isGenerating }: FormProps) {
-  const { register, handleSubmit, control, watch, formState: { errors } } = useForm<FormValues>({
+export function QrGeneratorForm({ onSubmit, isGenerating, prefillUrl }: FormProps) {
+  const { register, handleSubmit, control, watch, setValue, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      qrData: "https://replit.com",
+      qrData: prefillUrl || "https://replit.com",
       cornerColor: "#00E5FF",
       whiteFillColor: "#FFFFFF",
       logoScale: 0.2,
@@ -61,6 +62,12 @@ export function QrGeneratorForm({ onSubmit, isGenerating }: FormProps) {
   });
 
   const premiumEnabled = watch("premiumFeatures");
+
+  useEffect(() => {
+    if (prefillUrl) {
+      setValue("qrData", prefillUrl);
+    }
+  }, [prefillUrl, setValue]);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
