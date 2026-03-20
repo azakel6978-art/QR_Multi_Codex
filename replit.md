@@ -52,6 +52,24 @@ artifacts-monorepo/
 - `trackTraffic` — Premium traffic tracking
 - `vocalIntro` — Audio autoplay on page load (premium)
 
+### Color Schemes
+- `standard` — Default black modules with colored finder corners
+- `tricolor` — Three distinct corner colors (cyan/violet/amber by default)
+- `monochrome` — Grayscale gradient modules with stark white corners
+- `rainbow` — Full spectrum HSL gradient across all modules
+- `profile` — Colors derived from the searched platform (primary/secondary/accent)
+
+### Finder Pattern Rendering
+- Outer border ring = chosen color (per corner or per scheme)
+- White gap ring between outer and center
+- Center dot = same chosen color
+- Data modules outside finders = standard black (or scheme-dependent)
+
+### SCAN ME Text
+- Rendered below the QR code in a separate SVG area (56px height)
+- Never overlaps QR modules — guarantees scannability
+- `scanMeText` and `scanMeColor` control the label content and color
+
 ### Options
 - `highlightCorners` — Apply cornerColor to finder squares
 - `testScanMode` — Simulate QR scan and get reliability score
@@ -98,6 +116,8 @@ Every lib extends `tsconfig.base.json` with `composite: true`.
 
 ### `artifacts/acb-qr` (`@workspace/acb-qr`)
 React + Vite frontend. Previewed at `/`. Components in `src/pages/dashboard/`.
+- `/demo` — Productivity demo page with interactive variables, 4 QR design variants, morphing QR carousel (9 real scannable codes auto-cycling with countdown timer), and 9-page target matrix for AZAKELS
+- `/demo/qr-carousel.tsx` — Animated QR carousel component with play/pause, skip controls, download individual/all, and per-page detail cards
 
 ### `artifacts/api-server` (`@workspace/api-server`)
 Express 5 API. Routes in `src/routes/`. Uses `@workspace/api-zod` for validation and `@workspace/db` for persistence.

@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { QrCarousel } from "./qr-carousel";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // REAL AZAKELS 9-PAGE MATRIX — verified URLs + research data
@@ -19,7 +20,7 @@ const NINE_PAGES = [
     num: 1,
     source: "SoundBetter",
     type: "Intro Synopsis",
-    url: "https://soundbetter.com/profiles/azakels",
+    url: "https://soundbetter.com/profiles/652441-azakels",
     icon: <Music className="w-4 h-4" />,
     color: "cyan",
     pageRole: "intro",
@@ -32,7 +33,7 @@ const NINE_PAGES = [
     num: 2,
     source: "SoundBetter",
     type: "Artist Profile Page",
-    url: "https://soundbetter.com/profiles/azakels",
+    url: "https://soundbetter.com/profiles/652441-azakels",
     icon: <Music className="w-4 h-4" />,
     color: "cyan",
     pageRole: "profile",
@@ -210,52 +211,68 @@ interface QrConfig {
   whiteFill: boolean;
   whiteFillColor: string;
   highlightCorners: boolean;
-  textOverlay?: { text: string; font: string; size: number; x: number; y: number; color: string };
-  logoScale?: number;
-  targetKey: string; // which variable key holds the target URL
+  colorScheme: string;
+  triColors?: [string, string, string];
+  profileColors?: { primary: string; secondary: string; accent: string };
+  scanMeText: string;
+  scanMeColor: string;
+  targetKey: string;
 }
 
 const QR_CONFIGS: QrConfig[] = [
   {
-    id: "classic",
-    label: "Classic",
-    tagline: "Black corners — max scan compatibility on any surface",
-    cornerColor: "#000000",
-    whiteFill: false,
-    whiteFillColor: "#FFFFFF",
-    highlightCorners: false,
-    targetKey: "urlLinktree",
-  },
-  {
-    id: "neon",
-    label: "Neon Accent",
-    tagline: "Cyan highlighted corners — pops on dark print or screen",
+    id: "tricolor",
+    label: "Tri-Color Mix",
+    tagline: "Three distinct corner colors — cyan, violet, amber — one identity per finder square",
     cornerColor: "#00E5FF",
     whiteFill: false,
     whiteFillColor: "#FFFFFF",
     highlightCorners: true,
+    colorScheme: "tricolor",
+    triColors: ["#00E5FF", "#9B59B6", "#FF9900"],
+    scanMeText: "SCAN ME",
+    scanMeColor: "#00E5FF",
     targetKey: "urlLinktree",
   },
   {
-    id: "kindle",
-    label: "Commit Poker",
-    tagline: "Amber corners — routes directly to Amazon Kindle listing",
-    cornerColor: "#FF9900",
-    whiteFill: true,
-    whiteFillColor: "#FFFAF0",
-    highlightCorners: true,
-    targetKey: "urlKindle",
-  },
-  {
-    id: "branded",
-    label: "Branded Artist",
-    tagline: "Violet + name overlay — full identity for merch or press",
-    cornerColor: "#9B59B6",
+    id: "monochrome",
+    label: "Monochrome",
+    tagline: "Deep grayscale with stark white corners — understated elegance for print",
+    cornerColor: "#2A2A2A",
     whiteFill: false,
     whiteFillColor: "#FFFFFF",
     highlightCorners: true,
-    textOverlay: { text: "AZAKELS", font: "bold", size: 36, x: 50, y: 92, color: "#9B59B6" },
+    colorScheme: "monochrome",
+    scanMeText: "SCAN ME",
+    scanMeColor: "#333333",
+    targetKey: "urlKindle",
+  },
+  {
+    id: "rainbow",
+    label: "Rainbow",
+    tagline: "Full spectrum gradient across every module — eye-catching at any distance",
+    cornerColor: "#FF0000",
+    whiteFill: false,
+    whiteFillColor: "#FFFFFF",
+    highlightCorners: true,
+    colorScheme: "rainbow",
+    scanMeText: "SCAN ME",
+    scanMeColor: "#9B59B6",
     targetKey: "urlSongwhip",
+  },
+  {
+    id: "profile",
+    label: "Profile-Matched",
+    tagline: "Colors derived from the searched platform — SoundBetter teal, Amazon amber, Songwhip violet",
+    cornerColor: "#1DB4A2",
+    whiteFill: false,
+    whiteFillColor: "#FFFFFF",
+    highlightCorners: true,
+    colorScheme: "profile",
+    profileColors: { primary: "#1DB4A2", secondary: "#FF9900", accent: "#9B59B6" },
+    scanMeText: "SCAN ME",
+    scanMeColor: "#1DB4A2",
+    targetKey: "urlLinktree",
   },
 ];
 
@@ -302,8 +319,12 @@ export default function DemoPage() {
               highlightCorners: cfg.highlightCorners,
               whiteFill: cfg.whiteFill,
               whiteFillColor: cfg.whiteFillColor,
-              textOverlay: cfg.textOverlay,
-              logoScale: cfg.logoScale ?? 0,
+              colorScheme: cfg.colorScheme,
+              triColors: cfg.triColors,
+              profileColors: cfg.profileColors,
+              scanMeText: cfg.scanMeText,
+              scanMeColor: cfg.scanMeColor,
+              logoScale: 0,
               tabsToOpen: parseInt(getVar("tabs")) || 9,
               metadataFriendly: true,
               pageTitle: `AZAKELS — ${cfg.label}`,
@@ -323,7 +344,14 @@ export default function DemoPage() {
   useEffect(() => { generateAllQrs(); }, []);
 
   const openAllPages = () => {
-    NINE_PAGES.forEach((p, i) => setTimeout(() => window.open(p.url, "_blank"), i * 200));
+    NINE_PAGES.forEach((p, i) => {
+      setTimeout(() => {
+        const w = window.open(p.url, `_blank_${i}`);
+        if (!w) {
+          console.warn(`Popup blocked for tab ${i + 1}. Allow popups for this site.`);
+        }
+      }, i * 300);
+    });
   };
 
   const copyText = (text: string, id: string) => {
@@ -499,9 +527,8 @@ export default function DemoPage() {
 
                       {/* Badges */}
                       <div className="flex flex-wrap gap-1">
-                        {cfg.highlightCorners && <Badge variant="outline" className="text-[9px] border-primary/30 text-primary px-1.5 py-0">Corners</Badge>}
-                        {cfg.whiteFill        && <Badge variant="outline" className="text-[9px] border-amber-400/30 text-amber-300 px-1.5 py-0">Fill</Badge>}
-                        {cfg.textOverlay      && <Badge variant="outline" className="text-[9px] border-violet-400/30 text-violet-300 px-1.5 py-0">Text</Badge>}
+                        <Badge variant="outline" className="text-[9px] border-primary/30 text-primary px-1.5 py-0 capitalize">{cfg.colorScheme}</Badge>
+                        {cfg.scanMeText && <Badge variant="outline" className="text-[9px] border-green-400/30 text-green-300 px-1.5 py-0">SCAN ME</Badge>}
                       </div>
 
                       {/* Download */}
@@ -527,6 +554,11 @@ export default function DemoPage() {
               <span key={i} className={t === "→" ? "opacity-30" : t.includes("9") ? "text-white" : ""}>{t}</span>
             ))}
           </div>
+        </motion.section>
+
+        {/* ── MORPHING QR CAROUSEL ────────────────────────────────────────── */}
+        <motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+          <QrCarousel />
         </motion.section>
 
         {/* ── 9-PAGE MATRIX ───────────────────────────────────────────────── */}

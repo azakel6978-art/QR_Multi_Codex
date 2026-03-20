@@ -33,14 +33,44 @@ interface QrGenerateRequest {
   trackTraffic?: boolean;
   tabsToOpen?: number;
   premiumFeatures?: boolean;
+  colorScheme?: "standard" | "tricolor" | "monochrome" | "rainbow" | "profile";
+  triColors?: [string, string, string];
+  scanMeText?: string;
+  scanMeColor?: string;
+  profileColors?: { primary: string; secondary: string; accent: string };
 }
 
-async function hexToRgb(hex: string): Promise<{ r: number; g: number; b: number }> {
-  const clean = hex.replace("#", "");
-  const r = parseInt(clean.substring(0, 2), 16);
-  const g = parseInt(clean.substring(2, 4), 16);
-  const b = parseInt(clean.substring(4, 6), 16);
-  return { r, g, b };
+function isFinderPatternOuter(row: number, col: number, size: number): false | "tl" | "tr" | "bl" {
+  if (row < 7 && col < 7) return "tl";
+  if (row < 7 && col >= size - 7) return "tr";
+  if (row >= size - 7 && col < 7) return "bl";
+  return false;
+}
+
+function getFinderRole(
+  localRow: number,
+  localCol: number
+): "outer" | "gap" | "center" {
+  if (
+    localRow === 0 || localRow === 6 ||
+    localCol === 0 || localCol === 6
+  ) return "outer";
+  if (
+    localRow >= 2 && localRow <= 4 &&
+    localCol >= 2 && localCol <= 4
+  ) return "center";
+  return "gap";
+}
+
+function hslToHex(h: number, s: number, l: number): string {
+  s /= 100; l /= 100;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * color).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
 }
 
 async function generateQrWithOptions(
@@ -49,84 +79,172 @@ async function generateQrWithOptions(
 ): Promise<string> {
   const cornerColor = opts.cornerColor || "#000000";
   const highlightCorners = opts.highlightCorners !== false;
-  const logoScale = Math.min(opts.logoScale ?? 0.2, 0.4);
+  const scheme = opts.colorScheme || "standard";
+  const bgColor = opts.whiteFill ? (opts.whiteFillColor || "#FAFAFA") : "#FFFFFF";
+  const scanMeText = opts.scanMeText || "";
+  const scanMeColor = opts.scanMeColor || cornerColor;
+  const logoScale = Math.min(opts.logoScale ?? 0, 0.4);
 
-  const darkColor = highlightCorners ? cornerColor : "#000000";
+  const qr = QRCode.create(data, { errorCorrectionLevel: "H" });
+  const modules = qr.modules;
+  const modCount = modules.size;
+  const modSize = 12;
+  const margin = 4;
+  const qrDim = modCount * modSize;
+  const totalQrArea = qrDim + margin * modSize * 2;
+  const scanMeHeight = scanMeText ? 56 : 0;
+  const canvasW = totalQrArea;
+  const canvasH = totalQrArea + scanMeHeight;
 
-  const qrSize = 512;
-  const qrBuffer = await QRCode.toBuffer(data, {
-    errorCorrectionLevel: "H",
-    type: "png",
-    width: qrSize,
-    margin: 2,
-    color: {
-      dark: darkColor,
-      light: opts.whiteFill ? (opts.whiteFillColor || "#FAFAFA") : "#FFFFFF",
-    },
-  });
+  const triColors = opts.triColors || [cornerColor, "#9B59B6", "#FF6600"];
+  const profileColors = opts.profileColors || { primary: cornerColor, secondary: "#555555", accent: "#888888" };
 
-  let image = sharp(qrBuffer).resize(qrSize, qrSize);
+  function getCornerColor(corner: "tl" | "tr" | "bl"): string {
+    if (scheme === "tricolor") {
+      if (corner === "tl") return triColors[0];
+      if (corner === "tr") return triColors[1];
+      return triColors[2];
+    }
+    if (scheme === "profile") {
+      if (corner === "tl") return profileColors.primary;
+      if (corner === "tr") return profileColors.secondary;
+      return profileColors.accent;
+    }
+    if (scheme === "monochrome") return "#2A2A2A";
+    return cornerColor;
+  }
 
-  const composites: sharp.OverlayOptions[] = [];
+  function getModuleColor(row: number, col: number): string {
+    if (scheme === "rainbow") {
+      const hue = Math.floor(((col + row * 0.3) / (modCount + modCount * 0.3)) * 360);
+      return hslToHex(hue % 360, 80, 35);
+    }
+    if (scheme === "monochrome") return "#1A1A1A";
+    if (scheme === "profile") return profileColors.primary;
+    if (highlightCorners) return cornerColor;
+    return "#000000";
+  }
+
+  let rects = "";
+
+  rects += `<rect x="0" y="0" width="${canvasW}" height="${canvasH}" fill="${bgColor}" />`;
+
+  for (let row = 0; row < modCount; row++) {
+    for (let col = 0; col < modCount; col++) {
+      const idx = row * modCount + col;
+      const isDark = modules.data[idx] === 1;
+      const x = margin * modSize + col * modSize;
+      const y = margin * modSize + row * modSize;
+
+      const finder = isFinderPatternOuter(row, col, modCount);
+
+      if (finder) {
+        const localRow = finder === "bl" ? row - (modCount - 7) : row;
+        const localCol = finder === "tr" ? col - (modCount - 7) : col;
+        const role = getFinderRole(localRow, localCol);
+        const cColor = getCornerColor(finder);
+
+        if (role === "outer") {
+          rects += `<rect x="${x}" y="${y}" width="${modSize}" height="${modSize}" fill="${cColor}" rx="1" />`;
+        } else if (role === "center") {
+          rects += `<rect x="${x}" y="${y}" width="${modSize}" height="${modSize}" fill="${cColor}" rx="1" />`;
+        } else {
+          rects += `<rect x="${x}" y="${y}" width="${modSize}" height="${modSize}" fill="#FFFFFF" />`;
+        }
+      } else {
+        if (isDark) {
+          const color = getModuleColor(row, col);
+          if (scheme === "rainbow") {
+            rects += `<rect x="${x}" y="${y}" width="${modSize}" height="${modSize}" fill="${color}" rx="2" />`;
+          } else {
+            rects += `<rect x="${x}" y="${y}" width="${modSize}" height="${modSize}" fill="${color}" rx="1" />`;
+          }
+        }
+      }
+    }
+  }
+
+  if (scanMeText) {
+    const textY = totalQrArea + scanMeHeight / 2 + 2;
+    rects += `
+      <text
+        x="${canvasW / 2}"
+        y="${textY}"
+        font-family="Arial, Helvetica, sans-serif"
+        font-size="28"
+        font-weight="bold"
+        fill="${scanMeColor}"
+        text-anchor="middle"
+        dominant-baseline="middle"
+        letter-spacing="4"
+      >${scanMeText.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</text>`;
+  }
+
+  if (opts.textOverlay && opts.textOverlay.text && !scanMeText) {
+    const ov = opts.textOverlay;
+    const textY = totalQrArea + 36;
+    const fontWeight = ov.font === "bold" ? "bold" : "normal";
+    rects += `
+      <text
+        x="${canvasW / 2}"
+        y="${textY}"
+        font-family="Arial, Helvetica, sans-serif"
+        font-size="${Math.max(16, Math.min(ov.size, 48))}"
+        font-weight="${fontWeight}"
+        fill="${ov.color || "#000000"}"
+        text-anchor="middle"
+        dominant-baseline="middle"
+        letter-spacing="3"
+      >${ov.text.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</text>`;
+  }
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvasW}" height="${canvasH}" viewBox="0 0 ${canvasW} ${canvasH}">${rects}</svg>`;
+
+  let image = sharp(Buffer.from(svg)).resize(canvasW > 600 ? 600 : canvasW).png();
 
   if (opts.logoUrl && logoScale > 0) {
     try {
-      const logoSize = Math.floor(qrSize * logoScale);
-      const logoX = Math.floor((qrSize - logoSize) / 2);
-      const logoY = Math.floor((qrSize - logoSize) / 2);
+      const imgBuf = await image.toBuffer();
+      const imgMeta = await sharp(imgBuf).metadata();
+      const outW = imgMeta.width || 600;
+      const outH = imgMeta.height || 600;
+      const logoSize = Math.floor(outW * logoScale);
+      const logoX = Math.floor((outW - logoSize) / 2);
+      const qrAreaH = outH - (scanMeText ? Math.floor(scanMeHeight * (outW / canvasW)) : 0);
+      const logoY = Math.floor((qrAreaH - logoSize) / 2);
 
-      const fetch = (await import("node:https")).get;
+      const logoUrlParsed = new URL(opts.logoUrl);
+      if (!["https:", "http:"].includes(logoUrlParsed.protocol)) throw new Error("Invalid logo URL protocol");
+      const blockedHosts = ["localhost", "127.0.0.1", "0.0.0.0", "[::1]", "169.254.169.254", "metadata.google.internal"];
+      if (blockedHosts.some(h => logoUrlParsed.hostname === h || logoUrlParsed.hostname.endsWith(".internal"))) throw new Error("Blocked host");
+      const ipParts = logoUrlParsed.hostname.split(".");
+      if (ipParts.length === 4 && (ipParts[0] === "10" || (ipParts[0] === "172" && parseInt(ipParts[1]) >= 16 && parseInt(ipParts[1]) <= 31) || (ipParts[0] === "192" && ipParts[1] === "168"))) throw new Error("Blocked private IP");
+
+      const protocol = logoUrlParsed.protocol === "https:" ? await import("https") : await import("http");
+      const MAX_LOGO_BYTES = 5 * 1024 * 1024;
       const logoBuffer = await new Promise<Buffer>((resolve, reject) => {
-        const protocol = opts.logoUrl!.startsWith("https") ? require("https") : require("http");
-        protocol.get(opts.logoUrl!, (res: any) => {
+        const req = protocol.get(opts.logoUrl!, (res: any) => {
+          if (res.statusCode >= 300 && res.statusCode < 400) { reject(new Error("Redirects not followed")); return; }
           const chunks: Buffer[] = [];
-          res.on("data", (chunk: Buffer) => chunks.push(chunk));
+          let totalBytes = 0;
+          res.on("data", (chunk: Buffer) => { totalBytes += chunk.length; if (totalBytes > MAX_LOGO_BYTES) { req.destroy(); reject(new Error("Logo too large")); return; } chunks.push(chunk); });
           res.on("end", () => resolve(Buffer.concat(chunks)));
           res.on("error", reject);
         }).on("error", reject);
+        req.setTimeout(10000, () => { req.destroy(); reject(new Error("Logo fetch timeout")); });
       });
+
+      const bgCircle = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${logoSize + 12}" height="${logoSize + 12}"><circle cx="${(logoSize + 12) / 2}" cy="${(logoSize + 12) / 2}" r="${(logoSize + 12) / 2}" fill="white"/></svg>`);
 
       const resizedLogo = await sharp(logoBuffer)
         .resize(logoSize, logoSize, { fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 0 } })
         .toBuffer();
 
-      composites.push({ input: resizedLogo, left: logoX, top: logoY });
-    } catch (_e) {
-    }
-  }
-
-  if (opts.textOverlay && opts.textOverlay.text) {
-    const ov = opts.textOverlay;
-    const x = Math.floor((ov.x / 100) * qrSize);
-    const y = Math.floor((ov.y / 100) * qrSize);
-    const fontSize = Math.max(8, Math.min(ov.size, 120));
-
-    const fontWeight = ov.font === "bold" ? "bold" : "normal";
-    const fontStyle = ov.font === "italic" ? "italic" : "normal";
-    const fontFamily = ov.font === "cursive"
-      ? "Georgia, serif"
-      : "Arial, sans-serif";
-
-    const svgText = `
-      <svg width="${qrSize}" height="${qrSize}" xmlns="http://www.w3.org/2000/svg">
-        <text
-          x="${x}"
-          y="${y}"
-          font-family="${fontFamily}"
-          font-size="${fontSize}"
-          font-weight="${fontWeight}"
-          font-style="${fontStyle}"
-          fill="${ov.color || "#000000"}"
-          dominant-baseline="middle"
-          text-anchor="middle"
-        >${ov.text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</text>
-      </svg>`;
-
-    composites.push({ input: Buffer.from(svgText), top: 0, left: 0 });
-  }
-
-  if (composites.length > 0) {
-    image = sharp(await image.toBuffer()).composite(composites);
+      image = sharp(imgBuf).composite([
+        { input: await sharp(bgCircle).png().toBuffer(), left: logoX - 6, top: logoY - 6 },
+        { input: resizedLogo, left: logoX, top: logoY },
+      ]);
+    } catch (_e) {}
   }
 
   const finalBuffer = await image.png().toBuffer();
@@ -275,7 +393,7 @@ router.delete("/sessions/:id", async (req: Request, res: Response) => {
 
 router.post("/test", async (req: Request, res: Response) => {
   try {
-    const { sessionId, qrImageBase64 } = req.body as { sessionId?: string; qrImageBase64?: string };
+    const { sessionId } = req.body as { sessionId?: string; qrImageBase64?: string };
 
     let session: typeof qrSessionsTable.$inferSelect | undefined;
 

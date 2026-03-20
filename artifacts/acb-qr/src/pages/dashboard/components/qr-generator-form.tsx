@@ -24,6 +24,9 @@ const schema = z.object({
   vocalIntroUrl: z.string().optional(),
   trackTraffic: z.boolean().optional(),
   tabsToOpen: z.coerce.number().min(1).max(10).optional(),
+  colorScheme: z.enum(['standard', 'tricolor', 'monochrome', 'rainbow', 'profile']).optional(),
+  scanMeText: z.string().optional(),
+  scanMeColor: z.string().optional(),
   textOverlay: z.object({
     text: z.string().optional(),
     font: z.enum(['bold', 'italic', 'cursive', 'normal']).optional(),
@@ -51,6 +54,9 @@ export function QrGeneratorForm({ onSubmit, isGenerating, prefillUrl }: FormProp
       whiteFillColor: "#FFFFFF",
       logoScale: 0.2,
       tabsToOpen: 1,
+      colorScheme: "standard" as const,
+      scanMeText: "",
+      scanMeColor: "#00E5FF",
       textOverlay: {
         font: "bold",
         size: 24,
@@ -129,6 +135,44 @@ export function QrGeneratorForm({ onSubmit, isGenerating, prefillUrl }: FormProp
               <div className="flex gap-3">
                 <Input type="color" {...register("whiteFillColor")} />
                 <Input type="text" {...register("whiteFillColor")} className="flex-1" />
+              </div>
+            </div>
+
+            <div className="col-span-1 md:col-span-2 space-y-3">
+              <label className="text-sm font-medium text-muted-foreground block">Color Scheme</label>
+              <Controller
+                name="colorScheme"
+                control={control}
+                render={({ field }) => (
+                  <div className="grid grid-cols-5 gap-2">
+                    {[
+                      { val: "standard", label: "Standard" },
+                      { val: "tricolor", label: "Tri-Color" },
+                      { val: "monochrome", label: "Mono" },
+                      { val: "rainbow", label: "Rainbow" },
+                      { val: "profile", label: "Profile" },
+                    ].map(opt => (
+                      <button key={opt.val} type="button"
+                        onClick={() => field.onChange(opt.val)}
+                        className={`px-2 py-2 rounded-lg border text-xs font-medium transition-all ${field.value === opt.val ? "bg-primary/20 border-primary/50 text-primary" : "bg-secondary/30 border-border/50 text-muted-foreground hover:text-white"}`}
+                      >{opt.label}</button>
+                    ))}
+                  </div>
+                )}
+              />
+            </div>
+
+            <div className="col-span-1 md:col-span-2 grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium mb-1.5 block text-muted-foreground">SCAN ME Text (below QR)</label>
+                <Input {...register("scanMeText")} placeholder="SCAN ME" />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block text-muted-foreground">SCAN ME Color</label>
+                <div className="flex gap-3">
+                  <Input type="color" {...register("scanMeColor")} className="w-12" />
+                  <Input type="text" {...register("scanMeColor")} className="flex-1" />
+                </div>
               </div>
             </div>
           </CardContent>
